@@ -78,8 +78,8 @@ gdown 1u-jC1jnATKtfUD2EQPxYlmr0U2QBG7SP
 ```bash
 python3 inference.py -cn=inference.yaml
 ```
-[!NOTE]
-The from_pretrained variable in `inference.yaml` must point to the directory containing the downloaded model.
+> [!NOTE]
+> The from_pretrained variable in `inference.yaml` must point to the directory containing the downloaded model.
 
 ## Credits
 
