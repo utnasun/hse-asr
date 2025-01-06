@@ -69,7 +69,7 @@ python3 train.py -cn=deepspeech.yaml
 ### Inference
 To run inference (evaluate the model and save predictions):
 
-1. Download trained model (or use direct Goodle drive [link](https://drive.google.com/file/d/1u-jC1jnATKtfUD2EQPxYlmr0U2QBG7SP/view)):
+1. Download trained model (or use direct Google drive [link](https://drive.google.com/file/d/1u-jC1jnATKtfUD2EQPxYlmr0U2QBG7SP/view)):
 ```bash
 gdown 1u-jC1jnATKtfUD2EQPxYlmr0U2QBG7SP
 ```
