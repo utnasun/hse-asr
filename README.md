@@ -10,9 +10,13 @@
 
 ## About
 
-This repository contains a template for solving ASR task with PyTorch. This template branch is a part of the [HSE DLA course](https://github.com/markovka17/dla) ASR homework. Some parts of the code are missing (or do not follow the most optimal design choices...) and students are required to fill these parts themselves (as well as writing their own models, etc.).
-
-See the task assignment [here](https://github.com/markovka17/dla/tree/2024/hw1_asr).
+This repository demonstrates an attempt to solve the Automatic Speech Recognition (ASR) task using PyTorch. The model architecture is based on [Deepspeech2](https://arxiv.org/abs/1512.02595). The trained model achieved the following Character Error Rate (CER) and Word Error Rate (WER) metrics on the [Librispeech](https://www.openslr.org/12) test-clean dataset:
+```
+val_CER_(Argmax): 0.16772798662934774
+val_WER_(Argmax): 0.4320796105808388
+```
+You can view the WandB charts and example predictions at this [link](https://wandb.ai/muniev-hse/hse_asr/workspace). You can read WandB report at this [link](https://wandb.ai/muniev-hse/hse_asr/reports/-2-ASR--VmlldzoxMDgzNDUyOA).
+See the task assignment [here](https://github.com/NickKar30/SpeechAI/tree/main/hw2).
 
 ## Installation
 
@@ -56,19 +60,26 @@ Follow these steps to install the project:
 
 ## How To Use
 
+### Train
 To train a model, run the following command:
 
 ```bash
-python3 train.py -cn=CONFIG_NAME HYDRA_CONFIG_ARGUMENTS
+python3 train.py -cn=deepspeech.yaml
 ```
+### Inference
+To run inference (evaluate the model and save predictions):
 
-Where `CONFIG_NAME` is a config from `src/configs` and `HYDRA_CONFIG_ARGUMENTS` are optional arguments.
-
-To run inference (evaluate the model or save predictions):
-
+1. Download trained model:
 ```bash
-python3 inference.py HYDRA_CONFIG_ARGUMENTS
+gdown 1u-jC1jnATKtfUD2EQPxYlmr0U2QBG7SP
 ```
+2. Move the downloaded model to the directory specified in the `from_pretrained` variable in the `inference.yaml` configuration file.
+3. Run the inference script:
+```bash
+python3 inference.py -cn=inference.yaml
+```
+[!NOTE]
+The from_pretrained variable in `inference.yaml` must point to the directory containing the downloaded model.
 
 ## Credits
 
