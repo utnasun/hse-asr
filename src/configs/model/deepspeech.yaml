@@ -1,0 +1,4 @@
+_target_: src.model.DeepSpeech
+hidden_size: 1024 # Hidden size of RNN Layer
+hidden_layers: 5 # Number of RNN layers
+lookahead_context: 20 # The lookahead context for convolution after RNN layers
