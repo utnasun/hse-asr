@@ -1,7 +1,11 @@
+from pathlib import Path
+
+import pandas as pd
 import torch
 from tqdm.auto import tqdm
 
 from src.metrics.tracker import MetricTracker
+from src.metrics.utils import calc_cer, calc_wer
 from src.trainer.base_trainer import BaseTrainer
 
 
@@ -22,6 +26,8 @@ class Inferencer(BaseTrainer):
         dataloaders,
         text_encoder,
         save_path,
+        logger,
+        writer,
         metrics=None,
         batch_transforms=None,
         skip_model_load=False,
@@ -38,6 +44,8 @@ class Inferencer(BaseTrainer):
             text_encoder (CTCTextEncoder): text encoder.
             save_path (str): path to save model predictions and other
                 information.
+            logger (Logger): logger that logs output.
+            writer (WandBWriter | CometMLWriter): experiment tracker.
             metrics (dict): dict with the definition of metrics for
                 inference (metrics[inference]). Each metric is an instance
                 of src.metrics.BaseMetric.
@@ -70,6 +78,7 @@ class Inferencer(BaseTrainer):
 
         self.save_path = save_path
 
+        self.writer = writer
         # define metrics
         self.metrics = metrics
         if self.metrics is not None:
@@ -96,6 +105,15 @@ class Inferencer(BaseTrainer):
         for part, dataloader in self.evaluation_dataloaders.items():
             logs = self._inference_part(part, dataloader)
             part_logs[part] = logs
+
+        predictions = pd.read_csv(
+            str(self.save_path / "predictions.csv"), delimiter=","
+        )
+        predictions.rename(columns={"Unnamed: 0": "audio_file"}, inplace=True)
+        self.writer.add_table(
+            "predictions_clean100",
+            predictions[predictions["audio_file"].str.len() > 4],  # drop header columns
+        )
         return part_logs
 
     def process_batch(self, batch_idx, batch, metrics, part):
@@ -136,26 +154,29 @@ class Inferencer(BaseTrainer):
         # Some saving logic. This is an example
         # Use if you need to save predictions on disk
 
-        batch_size = batch["logits"].shape[0]
-        current_id = batch_idx * batch_size
+        argmax_inds = batch["log_probs"].cpu().argmax(-1).numpy()
+        argmax_inds = [
+            inds[: int(ind_len)]
+            for inds, ind_len in zip(argmax_inds, batch["log_probs_length"].numpy())
+        ]
+        predictions = [self.text_encoder.ctc_decode(inds) for inds in argmax_inds]
 
-        for i in range(batch_size):
-            # clone because of
-            # https://github.com/pytorch/pytorch/issues/1995
-            logits = batch["logits"][i].clone()
-            label = batch["labels"][i].clone()
-            pred_label = logits.argmax(dim=-1)
+        rows = {}
+        tuples = list(zip(predictions, batch["text"], batch["audio_path"]))
+        for pred, target, audio_path in tuples:
+            target = self.text_encoder.normalize_text(target)
+            wer = calc_wer(target, pred) * 100
+            cer = calc_cer(target, pred) * 100
 
-            output_id = current_id + i
-
-            output = {
-                "pred_label": pred_label,
-                "label": label,
+            rows[Path(audio_path).name] = {
+                "target": target,
+                "predictions": pred,
+                "wer": wer,
+                "cer": cer,
             }
-
-            if self.save_path is not None:
-                # you can use safetensors or other lib here
-                torch.save(output, self.save_path / part / f"output_{output_id}.pth")
+        pd.DataFrame.from_dict(rows, orient="index").to_csv(
+            str(self.save_path / "predictions.csv"), mode="a"
+        )
 
         return batch
 

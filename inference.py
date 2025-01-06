@@ -3,10 +3,11 @@ import warnings
 import hydra
 import torch
 from hydra.utils import instantiate
+from omegaconf import OmegaConf
 
 from src.datasets.data_utils import get_dataloaders
 from src.trainer import Inferencer
-from src.utils.init_utils import set_random_seed
+from src.utils.init_utils import set_random_seed, setup_saving_and_logging
 from src.utils.io_utils import ROOT_PATH
 
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -22,6 +23,8 @@ def main(config):
     Args:
         config (DictConfig): hydra experiment config.
     """
+    project_config = OmegaConf.to_container(config)
+    logger = setup_saving_and_logging(config)
     set_random_seed(config.inferencer.seed)
 
     if config.inferencer.device == "auto":
@@ -39,6 +42,8 @@ def main(config):
     # build model architecture, then print to console
     model = instantiate(config.model, n_tokens=len(text_encoder)).to(device)
     print(model)
+
+    writer = instantiate(config.writer, logger, project_config)
 
     # get metrics
     metrics = {"inference": []}
@@ -60,6 +65,8 @@ def main(config):
         text_encoder=text_encoder,
         batch_transforms=batch_transforms,
         save_path=save_path,
+        logger=logger,
+        writer=writer,
         metrics=metrics,
         skip_model_load=False,
     )
